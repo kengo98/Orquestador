@@ -11,6 +11,8 @@ using System.Net;
 using iTextSharp.text.pdf.qrcode;
 using System.Collections.Generic;
 using FuncionOrquestador.Models;
+using Microsoft.Azure.ServiceBus;
+using System.Text;
 
 namespace FuncionOrquestador
 {
@@ -24,8 +26,30 @@ namespace FuncionOrquestador
             log.LogInformation("C# HTTP trigger function processed a request.");
 
             var result = new List<Pagos>();
-            /////////////////////////////////////////////////////////////////POST////////////////////////////////////////////////////////////////////////////
+            /////////////////////////////////////////////////////////////////POST CON QUEUE////////////////////////////////////////////////////////////////////////////
             if (req.HttpContext.Request.Method == HttpMethods.Post)
+            {
+                string ServiceBusConnectionString = "Endpoint=sb://computacionmovil.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=+xyuzmOBvcYcw22+hIyF87FcoNWGr+hkVBJMdLbB9SY=";
+                string QueueName = "qprueba";
+                IQueueClient queueClient;
+                queueClient = new QueueClient(ServiceBusConnectionString, QueueName);
+                try
+                {
+                    string messageBody = await new StreamReader(req.Body).ReadToEndAsync();
+                    var message = new Message(Encoding.UTF8.GetBytes(messageBody));
+                    await queueClient.SendAsync(message);
+                }
+                catch (Exception exception)
+                {
+                    Console.WriteLine($"{DateTime.Now} :: Exception: {exception.Message}");
+                }
+
+                await queueClient.CloseAsync();
+                
+            }
+
+            /////////////////////////////////////////////////////////////////POST////////////////////////////////////////////////////////////////////////////
+            /*if (req.HttpContext.Request.Method == HttpMethods.Post)
             {
                 string requestBody = await new StreamReader(req.Body).ReadToEndAsync();
                 Pagos pago = JsonConvert.DeserializeObject<Pagos>(requestBody);
@@ -42,8 +66,8 @@ namespace FuncionOrquestador
                 {
                     var resultado = streamReader.ReadToEnd();
                 }
-                
-            }
+
+            }*/
 
 
 
@@ -76,5 +100,9 @@ namespace FuncionOrquestador
             }
             return null;
         }
+
+
+
+
     }
 }
